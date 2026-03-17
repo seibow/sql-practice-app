@@ -1,0 +1,6 @@
+FROM postgres:16-alpine
+ RUN apk add --no-cache musl-locales musl-locales-lang \
+     && echo "ja_JP.UTF-8" >> /etc/locale.gen
+	 
+ENV LANG=ja_JP.UTF-8
+ENV LC_ALL=ja_JP.UTF-8

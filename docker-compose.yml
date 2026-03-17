@@ -1,0 +1,30 @@
+services:
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile.db
+    environment:
+      POSTGRES_DB : sqlapp
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INIT_ARGS: "--locale=ja_JP.UTF-8 --encoding=UTF8"
+      LANG: ja_JP.UTF-8
+      LC_ALL: ja_JP.UTF-8
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/sqlapp
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_ADMIN_USER: ${DB_ADMIN_USER}
+      DB_ADMIN_PASSWORD: ${DB_ADMIN_PASSWORD}
+    depends_on:
+      - db
+
+volumes:
+    postgres_data:
