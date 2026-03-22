@@ -24,13 +24,15 @@ public class DatabaseConnection {
 		return DriverManager.getConnection(URL, USER, PASSWORD);
 	}
 	
+	private static final String SESSION_PASSWORD = System.getenv("SESSION_PASSWORD") != null ? System.getenv("SESSION_PASSWORD") : "session_pass";
+	
 	public static Connection getSessionConnection(String userName) throws SQLException {
 		try {
 			Class.forName("org.postgresql.Driver");
 		} catch (ClassNotFoundException e) {
 			throw new SQLException("ドライバ読み込み失敗: ", e);
 		}
-		return DriverManager.getConnection(URL, userName, "session_pass");
+		return DriverManager.getConnection(URL, userName, SESSION_PASSWORD);
 	}
 	
 	public static void main(String[] args) {

@@ -37,7 +37,8 @@ public class SandboxManager {
 			}
 			
 			// セッション専用ユーザー作成
-			stmt.execute("CREATE USER " + userName + "WITH PASSWORD 'session_pass'");
+			String sessionPassword = System.getenv("SESSION_PASSWORD") != null ? System.getenv("SESSION_PASSWORD") : "session_pass";
+			stmt.execute("CREATE USER " + userName + "WITH PASSWORD '" + sessionPassword + "'");
 			
 			//作成したスキーマにsandbox_userの権限付与
 			stmt.execute("GRANT USAGE ON SCHEMA " + schemaName + " TO " + userName);
