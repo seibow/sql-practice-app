@@ -79,7 +79,8 @@ public class SqlExecuteServlet extends HttpServlet {
     		return;
     	}
     	
-    	try (Connection conn = DatabaseConnection.getConnection();
+    	String userName = SandboxManager.createUserName(schemaName);
+    	try (Connection conn = DatabaseConnection.getSessionConnection(userName);
     		Statement stmtPath = conn.createStatement()) {
     		
     		//search_pathをセッションのスキーマに設定

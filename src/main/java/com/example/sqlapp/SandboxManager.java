@@ -6,11 +6,16 @@ import java.sql.Statement;
 
 public class SandboxManager {
 	public static String createSchmaName(String sessionId) {
-		return "sandbox_" + sessionId.substring(0, 8);
+		return "sandbox_" + sessionId.substring(0, 8).toLowerCase();
+	}
+	
+	public static String createUserName(String schemaName) {
+		return "user_" + schemaName.substring(8);
 	}
 	
 	//専用スキーマを作成してpublicからコピー
 	public static void createSandbox(String schemaName) throws SQLException {
+		String userName = createUserName(schemaName);
 		
 		try {
     		Class.forName("org.postgresql.Driver");
@@ -31,21 +36,28 @@ public class SandboxManager {
 				stmt.execute("INSERT INTO " + schemaName + "." + table + " SELECT * FROM public." + table);
 			}
 			
-			//作成したスキーマにsandbox_userの権限付与
-			stmt.execute("GRANT USAGE ON SCHEMA " + schemaName + " TO sandbox_user");
-			stmt.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA " + schemaName + " TO sandbox_user");
-			stmt.execute("GRANT USAGE ON ALL SEQUENCES IN SCHEMA " + schemaName + " TO sandbox_user");
+			// セッション専用ユーザー作成
+			stmt.execute("CREATE USER " + userName + "WITH PASSWORD 'session_pass'");
 			
-			System.out.println("sandbox作成完了: " + schemaName);
+			//作成したスキーマにsandbox_userの権限付与
+			stmt.execute("GRANT USAGE ON SCHEMA " + schemaName + " TO " + userName);
+			stmt.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA " + schemaName + " TO " + userName);
+			stmt.execute("GRANT USAGE ON ALL SEQUENCES IN SCHEMA " + schemaName + " TO " + userName);
+			stmt.execute("GRANT CREATE ON SCHEMA " + schemaName + " TO " + userName);
+			
+			
+			System.out.println("sandbox作成完了: " + schemaName + " / " + userName);
 		}
 	}
 	
 	//削除
 	public static void dropSandbox(String schemaName) throws SQLException {
+		String userName = createUserName(schemaName);
 		try (Connection conn = DatabaseConnection.getAdminConnection();
 			Statement stmt = conn.createStatement()) {
 			stmt.execute("DROP SCHEMA IF EXISTS " + schemaName + " CASCADE");
-			System.out.println("sandbox削除完了: " + schemaName);
+			stmt.execute("DROP USER IF EXISTS " + userName);
+			System.out.println("sandbox削除完了: " + schemaName + " / " + userName);
 		}
 	}
 	

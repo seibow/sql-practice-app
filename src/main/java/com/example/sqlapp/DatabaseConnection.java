@@ -24,6 +24,15 @@ public class DatabaseConnection {
 		return DriverManager.getConnection(URL, USER, PASSWORD);
 	}
 	
+	public static Connection getSessionConnection(String userName) throws SQLException {
+		try {
+			Class.forName("org.postgresql.Driver");
+		} catch (ClassNotFoundException e) {
+			throw new SQLException("ドライバ読み込み失敗: ", e);
+		}
+		return DriverManager.getConnection(URL, userName, "session_pass");
+	}
+	
 	public static void main(String[] args) {
 		try(Connection conn = getConnection()) {
 			System.out.println("接続成功！");
