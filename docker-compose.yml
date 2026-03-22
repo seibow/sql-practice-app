@@ -23,6 +23,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_ADMIN_USER: ${DB_ADMIN_USER}
       DB_ADMIN_PASSWORD: ${DB_ADMIN_PASSWORD}
+      SESSION_PASSWORD: ${SESSION_PASSWORD}
     depends_on:
       - db
 
