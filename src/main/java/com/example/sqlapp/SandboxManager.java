@@ -46,6 +46,32 @@ public class SandboxManager {
 			stmt.execute("GRANT USAGE ON ALL SEQUENCES IN SCHEMA " + schemaName + " TO " + userName);
 			stmt.execute("GRANT CREATE ON SCHEMA " + schemaName + " TO " + userName);
 			
+			// シーケンスを作成してテーブルに紐づける
+			String[] seqTables = {
+			    "customers:customer_id",
+			    "products:product_id", 
+			    "orders:order_id",
+			    "order_items:item_id"
+			};
+
+			for (String seqTable : seqTables) {
+			    String[] parts = seqTable.split(":");
+			    String table = parts[0];
+			    String column = parts[1];
+			    String seqName = table + "_" + column + "_seq";
+			    
+			    // シーケンス作成
+			    stmt.execute("CREATE SEQUENCE " + schemaName + "." + seqName);
+			    
+			    // 現在の最大値にセット
+			    stmt.execute("SELECT setval('" + schemaName + "." + seqName + "', (SELECT MAX(" + column + ") FROM " + schemaName + "." + table + "))");
+			    
+			    // テーブルのカラムにシーケンスを紐づける
+			    stmt.execute("ALTER TABLE " + schemaName + "." + table + " ALTER COLUMN " + column + " SET DEFAULT nextval('" + schemaName + "." + seqName + "')");
+			    
+			    // シーケンスの権限付与
+			    stmt.execute("GRANT USAGE ON SEQUENCE " + schemaName + "." + seqName + " TO " + userName);
+			}
 			
 			System.out.println("sandbox作成完了: " + schemaName + " / " + userName);
 		}
