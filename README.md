@@ -55,7 +55,7 @@ erDiagram
 3. .env.exampleをコピーして.envファイルを作成する
 `cp .env.example .env`
 4. `docker compose up --build`
-5. "http://localhost:8080"でブラウザを起動する
+5. "http://localhost:8080" でブラウザを起動する
 6. textbox内に試したいSQLを入力する
 7. SQL実行の際は「実行」ボタンをクリック(※Enterキーでは実行されません)
 8. 「データベースリセット」ボタンで、起動時のDB環境に戻せます
