@@ -20,6 +20,8 @@ public class DatabaseConnection {
 		}
 	}
 	
+	private DatabaseConnection () {}
+	
 	private static Connection connect(String user, String password) throws SQLException {
 		return DriverManager.getConnection(URL, user, password);
 	}
