@@ -38,6 +38,10 @@ public class DatabaseConnection {
 		return connect(userName, SESSION_PASSWORD); 
 	}
 	
+	public static String getSessionPassword() {
+		return SESSION_PASSWORD;
+	}
+	
 	public static void main(String[] args) {
 		try(Connection conn = getConnection()) {
 			System.out.println("接続成功！");

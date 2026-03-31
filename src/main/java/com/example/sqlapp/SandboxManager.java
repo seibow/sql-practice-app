@@ -5,7 +5,15 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 public class SandboxManager {
-	public static String createSchmaName(String sessionId) {
+	
+	private static final String[][] TABLE_SEQUENCES = {
+			{"customers", "customer_id"},
+			{"products", "product_id"},
+			{"orders", "order_id"},
+			{"order_items", "item_id"}
+	};
+	
+	public static String createSchemaName(String sessionId) {
 		return "sandbox_" + sessionId.substring(0, 8).toLowerCase();
 	}
 	
@@ -17,61 +25,14 @@ public class SandboxManager {
 	public static void createSandbox(String schemaName) throws SQLException {
 		String userName = createUserName(schemaName);
 		
-		try {
-    		Class.forName("org.postgresql.Driver");
-    	} catch (ClassNotFoundException e) {
-    		throw new SQLException("ドライバ読み込み失敗: ", e);
-    	}
-		
 		try (Connection conn = DatabaseConnection.getAdminConnection();
 			Statement stmt = conn.createStatement()) {
 			
-			//スキーマ作成
-			stmt.execute("CREATE SCHEMA IF NOT EXISTS " + schemaName);
-			
-			//テーブル構造とデータをコピー
-			String[] tables = {"customers", "products", "orders", "order_items"};
-			for (String table : tables) {
-				stmt.execute("CREATE TABLE " + schemaName + "." + table + " (LIKE public." + table + " INCLUDING ALL)");
-				stmt.execute("INSERT INTO " + schemaName + "." + table + " SELECT * FROM public." + table);
-			}
-			
-			// セッション専用ユーザー作成
-			String sessionPassword = System.getenv("SESSION_PASSWORD") != null ? System.getenv("SESSION_PASSWORD") : "session_pass";
-			stmt.execute("CREATE USER " + userName + " WITH PASSWORD '" + sessionPassword + "'");
-			
-			//作成したスキーマにsandbox_userの権限付与
-			stmt.execute("GRANT USAGE ON SCHEMA " + schemaName + " TO " + userName);
-			stmt.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA " + schemaName + " TO " + userName);
-			stmt.execute("GRANT USAGE ON ALL SEQUENCES IN SCHEMA " + schemaName + " TO " + userName);
-			stmt.execute("GRANT CREATE ON SCHEMA " + schemaName + " TO " + userName);
-			
-			// シーケンスを作成してテーブルに紐づける
-			String[] seqTables = {
-			    "customers:customer_id",
-			    "products:product_id", 
-			    "orders:order_id",
-			    "order_items:item_id"
-			};
-
-			for (String seqTable : seqTables) {
-			    String[] parts = seqTable.split(":");
-			    String table = parts[0];
-			    String column = parts[1];
-			    String seqName = table + "_" + column + "_seq";
-			    
-			    // シーケンス作成
-			    stmt.execute("CREATE SEQUENCE " + schemaName + "." + seqName);
-			    
-			    // 現在の最大値にセット
-			    stmt.execute("SELECT setval('" + schemaName + "." + seqName + "', (SELECT MAX(" + column + ") FROM " + schemaName + "." + table + "))");
-			    
-			    // テーブルのカラムにシーケンスを紐づける
-			    stmt.execute("ALTER TABLE " + schemaName + "." + table + " ALTER COLUMN " + column + " SET DEFAULT nextval('" + schemaName + "." + seqName + "')");
-			    
-			    // シーケンスの権限付与
-			    stmt.execute("GRANT USAGE ON SEQUENCE " + schemaName + "." + seqName + " TO " + userName);
-			}
+			createSchema(stmt, schemaName);
+			copyTablesFromPublic(stmt, schemaName);
+			createSandboxUser(stmt, userName);
+			grantPermissions(stmt, schemaName, userName);
+			setupSequences(stmt, schemaName, userName);
 			
 			System.out.println("sandbox作成完了: " + schemaName + " / " + userName);
 		}
@@ -94,4 +55,43 @@ public class SandboxManager {
 		createSandbox(schemaName);
 		System.out.println("sandboxリセット完了: " + schemaName);
 	}
+
+
+	private static void createSchema(Statement stmt, String schemaName) throws SQLException {
+		stmt.execute("CREATE SCHEMA IF NOT EXISTS " + schemaName);
+	}
+
+	private static void copyTablesFromPublic(Statement stmt, String schemaName) throws SQLException {
+		for (String[] entry : TABLE_SEQUENCES) {
+			String table = entry[0];
+			stmt.execute("CREATE TABLE " + schemaName + "." + table + " (LIKE public." + table + " INCLUDING ALL)");
+			stmt.execute("INSERT INTO " + schemaName + "." + table + " SELECT * FROM public." + table);
+		}
+	}
+
+	private static void createSandboxUser(Statement stmt, String userName) throws SQLException {
+		String sessionPassword = DatabaseConnection.getSessionPassword();
+		stmt.execute("CREATE USER " + userName + " WITH PASSWORD '" + sessionPassword + "'");
+	}
+
+	private static void grantPermissions(Statement stmt, String schemaName, String userName) throws SQLException {
+		stmt.execute("GRANT USAGE ON SCHEMA " + schemaName + " TO " + userName);
+		stmt.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA " + schemaName + " TO " + userName);
+		stmt.execute("GRANT USAGE ON ALL SEQUENCES IN SCHEMA " + schemaName + " TO " + userName);
+		stmt.execute("GRANT CREATE ON SCHEMA " + schemaName + " TO " + userName);
+	}
+
+	private static void setupSequences(Statement stmt, String schemaName, String userName) throws SQLException {
+		for (String[] entry : TABLE_SEQUENCES) {
+			String table = entry[0];
+			String column = entry[1];
+			String seqName = table + "_" + column + "_seq";
+			
+			stmt.execute("CREATE SEQUENCE " + schemaName + "." + seqName);
+			stmt.execute("SELECT setval('" + schemaName + "." + seqName + "', (SELECT MAX(" + column + ") FROM " + schemaName + "." + table + "))");
+			stmt.execute("ALTER TABLE " + schemaName + "." + table + " ALTER COLUMN " + column + " SET DEFAULT nextval('" + schemaName + "." + seqName + "')");
+			stmt.execute("GRANT USAGE ON SEQUENCE " + schemaName + "." + seqName + " TO " + userName);
+		}
+	}
 }
+
