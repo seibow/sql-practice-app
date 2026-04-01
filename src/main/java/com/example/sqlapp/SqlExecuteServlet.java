@@ -30,7 +30,7 @@ public class SqlExecuteServlet extends HttpServlet {
     	
     	//初回アクセス時にsandbox作成
     	if (schemaName == null) {
-    		schemaName = SandboxManager.createSchmaName(session.getId());
+    		schemaName = SandboxManager.createSchemaName(session.getId());
     		session.setAttribute("schemaName", schemaName);
     		try {
     			SandboxManager.createSandbox(schemaName);
