@@ -10,29 +10,36 @@ public class DatabaseConnection {
 	private static final String PASSWORD = System.getenv("DB_PASSWORD");
 	private static final String ADMIN_USER = System.getenv("DB_ADMIN_USER");
 	private static final String ADMIN_PASSWORD = System.getenv("DB_ADMIN_PASSWORD");
+	private static final String SESSION_PASSWORD = System.getenv("SESSION_PASSWORD") != null ? System.getenv("SESSION_PASSWORD") : "session_pass";
 	
-	public static Connection getAdminConnection() throws SQLException {
+	static {
 		try {
 			Class.forName("org.postgresql.Driver");
 		} catch (ClassNotFoundException e) {
-			throw new SQLException("ドライバ読み込み失敗: ", e);
+			throw new ExceptionInInitializerError("PostgreSQL ドライバ読み込み失敗: " + e.getMessage());
 		}
-		return DriverManager.getConnection(URL, ADMIN_USER, ADMIN_PASSWORD);
+	}
+	
+	private DatabaseConnection () {}
+	
+	private static Connection connect(String user, String password) throws SQLException {
+		return DriverManager.getConnection(URL, user, password);
 	}
 	
 	public static Connection getConnection() throws SQLException {
-		return DriverManager.getConnection(URL, USER, PASSWORD);
+		return connect(USER, PASSWORD);
 	}
 	
-	private static final String SESSION_PASSWORD = System.getenv("SESSION_PASSWORD") != null ? System.getenv("SESSION_PASSWORD") : "session_pass";
+	public static Connection getAdminConnection() throws SQLException {
+		return connect(ADMIN_USER, ADMIN_PASSWORD);
+	}
 	
 	public static Connection getSessionConnection(String userName) throws SQLException {
-		try {
-			Class.forName("org.postgresql.Driver");
-		} catch (ClassNotFoundException e) {
-			throw new SQLException("ドライバ読み込み失敗: ", e);
-		}
-		return DriverManager.getConnection(URL, userName, SESSION_PASSWORD);
+		return connect(userName, SESSION_PASSWORD); 
+	}
+	
+	public static String getSessionPassword() {
+		return SESSION_PASSWORD;
 	}
 	
 	public static void main(String[] args) {
